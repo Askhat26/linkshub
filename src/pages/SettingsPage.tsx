@@ -1,17 +1,20 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { authApi } from "@/lib/api";
+import { authApi, uploadsApi } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Copy, ExternalLink, Link as LinkIcon, Share2 } from "lucide-react";
+import { Copy, ExternalLink, Link as LinkIcon, Share2, Upload } from "lucide-react";
+import axios from "axios";
 
 const SettingsPage = () => {
   const { user, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [form, setForm] = useState({
     name: user?.name || "",
@@ -20,17 +23,14 @@ const SettingsPage = () => {
     bio: user?.bio || "",
   });
 
-  const [passwords, setPasswords] = useState({
-    currentPassword: "",
-    newPassword: "",
-  });
-
+  const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [saving, setSaving] = useState(false);
 
-  // Build public URL
-  const publicBaseUrl =
-    import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
+  // Avatar states
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string>(user?.avatar || "");
 
+  const publicBaseUrl = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
   const previewUsername = (form.username || user?.username || "").trim();
   const savedUsername = (user?.username || "").trim();
 
@@ -41,7 +41,7 @@ const SettingsPage = () => {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await authApi.updateProfile(form);
+      await authApi.updateProfile({ name: form.name, username: form.username, bio: form.bio });
       await refreshUser();
       toast.success("Settings saved");
     } catch (err: any) {
@@ -52,17 +52,13 @@ const SettingsPage = () => {
   };
 
   const handleChangePassword = async () => {
-    if (!passwords.currentPassword || !passwords.newPassword) {
-      return toast.error("Fill in both fields");
-    }
+    if (!passwords.currentPassword || !passwords.newPassword) return toast.error("Fill in both fields");
     try {
       await authApi.changePassword(passwords);
       setPasswords({ currentPassword: "", newPassword: "" });
       toast.success("Password updated");
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.error || err?.message || "Failed to update password"
-      );
+      toast.error(err?.response?.data?.error || err?.message || "Failed to update password");
     }
   };
 
@@ -74,9 +70,7 @@ const SettingsPage = () => {
       navigate("/");
       toast.success("Account deleted");
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.error || err?.message || "Failed to delete account"
-      );
+      toast.error(err?.response?.data?.error || err?.message || "Failed to delete account");
     }
   };
 
@@ -97,40 +91,80 @@ const SettingsPage = () => {
 
   const sharePublicLink = async () => {
     if (!previewUsername) return toast.error("Username missing");
-
     const nav: any = navigator;
+
     if (nav.share) {
       try {
         await nav.share({
-          title: `${form.name || user?.name || "Linkora"} profile`,
-          text: "Check out my Linkora profile",
+          title: `${form.name || user?.name || "Linkkora"} profile`,
+          text: "Check out my Linkkora profile",
           url: publicProfileUrl,
         });
         return;
       } catch {
-        // user cancelled; ignore
         return;
       }
     }
-
-    // fallback to copy
     copyPublicLink();
+  };
+
+  // ─── Avatar Upload (Cloudinary signed upload) ───────────────────
+  const handlePickAvatar = () => fileRef.current?.click();
+
+  const handleAvatarFile = async (file?: File | null) => {
+    if (!file) return;
+
+    // client-side validation
+    if (!file.type.startsWith("image/")) return toast.error("Please select an image");
+    if (file.size > 3 * 1024 * 1024) return toast.error("Max image size is 3MB");
+
+    // show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setAvatarPreview(localUrl);
+
+    setUploadingAvatar(true);
+    try {
+      // 1) get signature from backend
+      const sigRes = await uploadsApi.getCloudinarySignature();
+      const { cloudName, apiKey, timestamp, signature, folder } = sigRes.data;
+
+      // 2) upload to cloudinary directly
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", apiKey);
+      formData.append("timestamp", String(timestamp));
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const uploadRes = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      const secureUrl: string = uploadRes.data.secure_url;
+
+      // 3) save avatar URL in DB
+      await authApi.updateAvatar(secureUrl);
+
+      await refreshUser();
+      setAvatarPreview(secureUrl);
+      toast.success("Avatar updated");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err?.message || "Avatar upload failed");
+      // fallback to existing avatar if upload failed
+      setAvatarPreview(user?.avatar || "");
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   return (
     <DashboardLayout>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl space-y-6"
-      >
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl space-y-6">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">
-            Settings
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your account
-          </p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your account</p>
         </div>
 
         {/* Profile */}
@@ -138,12 +172,32 @@ const SettingsPage = () => {
           <h3 className="text-sm font-medium text-foreground">Profile</h3>
 
           <div className="flex items-center gap-4 mb-2">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xl font-bold text-primary-foreground">
-              {(form.name?.trim()?.charAt(0) || "U").toUpperCase()}
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xl font-bold text-primary-foreground">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                (form.name?.trim()?.charAt(0) || "U").toUpperCase()
+              )}
             </div>
-            <Button variant="outline" size="sm" disabled>
-              Change Avatar (soon)
-            </Button>
+
+            <div className="flex flex-col gap-2">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleAvatarFile(e.target.files?.[0])}
+              />
+
+              <Button variant="outline" size="sm" onClick={handlePickAvatar} disabled={uploadingAvatar} className="gap-2">
+                <Upload className="w-4 h-4" />
+                {uploadingAvatar ? "Uploading..." : "Change Avatar"}
+              </Button>
+
+              <p className="text-[11px] text-muted-foreground">
+                PNG/JPG • max 3MB
+              </p>
+            </div>
           </div>
 
           {[
@@ -152,14 +206,10 @@ const SettingsPage = () => {
             { key: "email", label: "Email", type: "email" },
           ].map((f) => (
             <div key={f.key}>
-              <label className="text-xs text-muted-foreground mb-1 block">
-                {f.label}
-              </label>
+              <label className="text-xs text-muted-foreground mb-1 block">{f.label}</label>
               <Input
                 value={(form as any)[f.key]}
-                onChange={(e) =>
-                  setForm({ ...form, [f.key]: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                 type={f.type}
                 className="bg-secondary/50"
               />
@@ -167,9 +217,7 @@ const SettingsPage = () => {
           ))}
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">
-              Bio
-            </label>
+            <label className="text-xs text-muted-foreground mb-1 block">Bio</label>
             <textarea
               value={form.bio}
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
@@ -178,11 +226,7 @@ const SettingsPage = () => {
             />
           </div>
 
-          <Button
-            onClick={handleSaveProfile}
-            className="w-full"
-            disabled={saving}
-          >
+          <Button onClick={handleSaveProfile} className="w-full" disabled={saving || uploadingAvatar}>
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
@@ -191,45 +235,27 @@ const SettingsPage = () => {
         <div className="glass rounded-2xl p-6 space-y-4">
           <div className="flex items-center gap-2">
             <LinkIcon className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-medium text-foreground">
-              Share your public link
-            </h3>
+            <h3 className="text-sm font-medium text-foreground">Share your public link</h3>
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">
-              Public profile URL
-            </label>
+            <label className="text-xs text-muted-foreground mb-1 block">Public profile URL</label>
             <div className="flex gap-2">
-              <Input
-                readOnly
-                value={publicProfileUrl}
-                className="bg-secondary/50"
-              />
-              <Button
-                variant="outline"
-                onClick={copyPublicLink}
-                className="shrink-0"
-              >
+              <Input readOnly value={publicProfileUrl} className="bg-secondary/50" />
+              <Button variant="outline" onClick={copyPublicLink} className="shrink-0">
                 <Copy className="w-4 h-4 mr-2" /> Copy
               </Button>
             </div>
 
             {savedUsername && previewUsername !== savedUsername && (
               <p className="text-xs text-muted-foreground mt-2">
-                You changed your username. Click{" "}
-                <span className="text-foreground">Save Changes</span> to make
-                this link active.
+                You changed your username. Click <span className="text-foreground">Save Changes</span> to make this link active.
               </p>
             )}
           </div>
 
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={openPublicLink}
-              className="w-full"
-            >
+            <Button variant="outline" onClick={openPublicLink} className="w-full">
               <ExternalLink className="w-4 h-4 mr-2" /> Open
             </Button>
             <Button onClick={sharePublicLink} className="w-full">
@@ -240,62 +266,42 @@ const SettingsPage = () => {
 
         {/* Change Password */}
         <div className="glass rounded-2xl p-6 space-y-5">
-          <h3 className="text-sm font-medium text-foreground">
-            Change Password
-          </h3>
+          <h3 className="text-sm font-medium text-foreground">Change Password</h3>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">
-              Current Password
-            </label>
+            <label className="text-xs text-muted-foreground mb-1 block">Current Password</label>
             <Input
               type="password"
               value={passwords.currentPassword}
-              onChange={(e) =>
-                setPasswords({ ...passwords, currentPassword: e.target.value })
-              }
+              onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
               placeholder="••••••••"
               className="bg-secondary/50"
             />
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">
-              New Password
-            </label>
+            <label className="text-xs text-muted-foreground mb-1 block">New Password</label>
             <Input
               type="password"
               value={passwords.newPassword}
-              onChange={(e) =>
-                setPasswords({ ...passwords, newPassword: e.target.value })
-              }
+              onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
               placeholder="••••••••"
               className="bg-secondary/50"
             />
           </div>
 
-          <Button
-            variant="outline"
-            onClick={handleChangePassword}
-            className="w-full"
-          >
+          <Button variant="outline" onClick={handleChangePassword} className="w-full">
             Update Password
           </Button>
         </div>
 
         {/* Danger Zone */}
         <div className="glass rounded-2xl p-6 border-destructive/20">
-          <h3 className="text-sm font-medium text-destructive mb-2">
-            Danger Zone
-          </h3>
+          <h3 className="text-sm font-medium text-destructive mb-2">Danger Zone</h3>
           <p className="text-xs text-muted-foreground mb-4">
             Once you delete your account, there is no going back.
           </p>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDeleteAccount}
-          >
+          <Button variant="destructive" size="sm" onClick={handleDeleteAccount}>
             Delete Account
           </Button>
         </div>
