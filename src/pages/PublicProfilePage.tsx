@@ -2,7 +2,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { usePublicProfile } from "@/hooks/useApi";
 import { themes } from "@/lib/mock-data";
-import { ExternalLink, QrCode, Share2, Check, X } from "lucide-react";
+import {
+  ExternalLink,
+  QrCode,
+  Share2,
+  Check,
+  X,
+  Instagram,
+  Youtube,
+  Twitter,
+  Linkedin,
+  Github,
+  Globe,
+} from "lucide-react";
 import { publicApi } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -32,7 +44,6 @@ const PublicProfilePage = () => {
   }, []);
 
   const promoUrl = useMemo(() => {
-    if (typeof window === "undefined") return "linktr.ee/yourname";
     const u = username || "yourname";
     return `linktr.ee/${u}`;
   }, [username]);
@@ -78,7 +89,8 @@ const PublicProfilePage = () => {
     );
   }
 
-  const { user, links, appearance } = data;
+  const { user, links, appearance } = data as any;
+  const showBranding = (data as any)?.showBranding ?? user?.plan === "starter";
 
   const safeAppearance =
     appearance || {
@@ -94,6 +106,8 @@ const PublicProfilePage = () => {
 
   const theme = themes.find((t) => t.id === safeAppearance.theme) || themes[0];
   const enabledLinks = (links || []).filter((l: any) => l.enabled);
+
+  const featuredLink = enabledLinks[0];
 
   const handleLinkClick = (linkId: string) => {
     if (username) publicApi.trackClick(username, linkId).catch(() => {});
@@ -228,6 +242,162 @@ const PublicProfilePage = () => {
     );
   };
 
+  // --- hero helpers (UI-only) ---
+  const getSocialIcon = (url: string) => {
+    const u = url.toLowerCase();
+    if (u.includes("instagram.com")) return Instagram;
+    if (u.includes("youtube.com") || u.includes("youtu.be")) return Youtube;
+    if (u.includes("twitter.com") || u.includes("x.com")) return Twitter;
+    if (u.includes("linkedin.com")) return Linkedin;
+    if (u.includes("github.com")) return Github;
+    return Globe;
+  };
+
+  const socialLinks = enabledLinks
+    .filter((l: any) => {
+      const u = l.url.toLowerCase();
+      return (
+        u.includes("instagram.com") ||
+        u.includes("youtube.com") ||
+        u.includes("youtu.be") ||
+        u.includes("twitter.com") ||
+        u.includes("x.com") ||
+        u.includes("linkedin.com") ||
+        u.includes("github.com")
+      );
+    })
+    .slice(0, 5);
+
+  const getHost = (url: string) => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      return url;
+    }
+  };
+
+  const HeroPremium = () => (
+    <div className="w-full mb-5">
+      <div className="relative rounded-3xl overflow-hidden border border-border/60 glass">
+        {/* Banner */}
+        <div className="h-24" style={{ background: theme.gradient || theme.accent, opacity: 0.9 }} />
+
+        {/* Pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.09]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.9) 0, rgba(255,255,255,0) 38%), radial-gradient(circle at 80% 10%, rgba(255,255,255,0.7) 0, rgba(255,255,255,0) 40%), radial-gradient(circle at 60% 90%, rgba(255,255,255,0.5) 0, rgba(255,255,255,0) 45%)",
+          }}
+        />
+
+        {/* Glass profile card */}
+        <div className="relative px-4 pb-4 -mt-10">
+          <div className="glass-strong rounded-2xl border border-border/60 p-4">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-16 h-16 ${getAvatarRadius()} shrink-0 flex items-center justify-center font-bold text-xl`}
+                style={{
+                  background: theme.gradient || theme.accent,
+                  color: "#fff",
+                  boxShadow: `0 0 30px ${theme.accent}30`,
+                }}
+              >
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.charAt(0) || "?"
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <div className="text-lg font-bold truncate" style={{ color: theme.text }}>
+                  @{user?.username}
+                </div>
+
+                <div
+                  className="text-xs mt-1"
+                  style={{
+                    color: theme.subtext,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {user?.bio}
+                </div>
+              </div>
+            </div>
+
+            {/* Social icons */}
+            {socialLinks.length > 0 && (
+              <div className="flex items-center gap-2 mt-4">
+                {socialLinks.map((l: any) => {
+                  const Icon = getSocialIcon(l.url);
+                  return (
+                    <a
+                      key={l._id}
+                      href={l.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => handleLinkClick(l._id)}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center border border-border/60 hover:bg-secondary/40 transition"
+                      style={{ color: theme.text }}
+                      title={l.title}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ✅ Featured Link Card */}
+            {featuredLink && (
+              <motion.a
+                href={featuredLink.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => handleLinkClick(featuredLink._id)}
+                className="mt-4 block rounded-2xl border border-border/60 overflow-hidden hover:translate-y-[-1px] transition-transform"
+                style={{ background: theme.cardBg }}
+              >
+                <div className="relative p-4">
+                  <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl opacity-25" style={{ background: theme.accent }} />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-wider font-semibold opacity-70" style={{ color: theme.subtext }}>
+                        Featured
+                      </div>
+                      <div className="text-sm font-semibold truncate mt-1" style={{ color: theme.text }}>
+                        {featuredLink.title}
+                      </div>
+                      <div className="text-[11px] truncate mt-1" style={{ color: theme.subtext }}>
+                        {getHost(featuredLink.url)}
+                      </div>
+                    </div>
+                    <div
+                      className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{
+                        background: theme.buttonBg,
+                        border: `1px solid ${theme.accent}33`,
+                        color: theme.buttonText,
+                      }}
+                      title="Open"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              </motion.a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background noise-bg overflow-x-hidden">
       <div className="min-h-screen flex items-center justify-center px-4 py-10 relative">
@@ -240,22 +410,14 @@ const PublicProfilePage = () => {
           {/* Premium outer frame */}
           <div className="rounded-[3.2rem] p-[3px] bg-gradient-to-b from-white/15 to-white/0 shadow-[0_30px_120px_rgba(0,0,0,0.55)]">
             {/* Phone frame */}
-            <div
-              className="relative w-full rounded-[3rem] overflow-hidden border border-border/60"
-              style={{ background: theme.bg }}
-            >
+            <div className="relative w-full rounded-[3rem] overflow-hidden border border-border/60" style={{ background: theme.bg }}>
               {/* Gradient overlay */}
-              {theme.gradient && (
-                <div className="absolute inset-0 opacity-10" style={{ background: theme.gradient }} />
-              )}
+              {theme.gradient && <div className="absolute inset-0 opacity-10" style={{ background: theme.gradient }} />}
 
-              {/* NEW: Top hero banner inside phone */}
-              <div
-                className="absolute top-0 left-0 right-0 h-40 opacity-30"
-                style={{ background: theme.gradient || theme.accent }}
-              />
+              {/* Hero banner background */}
+              <div className="absolute top-0 left-0 right-0 h-44 opacity-25" style={{ background: theme.gradient || theme.accent }} />
 
-              {/* Share button (top-right) - unchanged */}
+              {/* Share button (top-right) */}
               <div className="absolute top-4 right-4 z-30">
                 <button
                   onClick={handleShare}
@@ -267,7 +429,7 @@ const PublicProfilePage = () => {
                 </button>
               </div>
 
-              {/* NEW: Promo button (top-left) uses /favicon.ico */}
+              {/* Promo button (top-left) */}
               <div className="absolute top-4 left-4 z-30">
                 <button
                   onClick={() => setPromoOpen(true)}
@@ -280,10 +442,7 @@ const PublicProfilePage = () => {
               </div>
 
               {/* Content area with fixed footer spacing */}
-              <div
-                className="relative z-10 p-5 pt-16 pb-24 flex flex-col items-center"
-                style={{ fontFamily: safeAppearance.font }}
-              >
+              <div className="relative z-10 p-5 pt-16 pb-24 flex flex-col items-center" style={{ fontFamily: safeAppearance.font }}>
                 {isNewLayout(safeAppearance.layout) ? (
                   <div className="w-full">
                     <RenderNewLayout
@@ -297,35 +456,13 @@ const PublicProfilePage = () => {
                   </div>
                 ) : (
                   <>
-                    {/* Old layout hero (existing logic) */}
-                    <motion.div
-                      initial={{ scale: 0.9 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", bounce: 0.4 }}
-                      className={`${safeAppearance?.layout === "focus-avatar" ? "w-28 h-28 text-4xl" : "w-24 h-24 text-3xl"} ${getAvatarRadius()} flex items-center justify-center font-bold mb-4 mt-2`}
-                      style={{
-                        background: theme.gradient || theme.accent,
-                        color: "#fff",
-                        boxShadow: `0 0 40px ${theme.accent}40`,
-                      }}
-                    >
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        user?.name?.charAt(0) || "?"
-                      )}
-                    </motion.div>
+                    {/* Premium hero with featured link */}
+                    <HeroPremium />
 
-                    <h1 className="text-xl font-bold" style={{ color: theme.text }}>
-                      @{user?.username}
-                    </h1>
-                    <p className="text-sm text-center mt-2 mb-8 max-w-xs" style={{ color: theme.subtext }}>
-                      {user?.bio}
-                    </p>
-
+                    {/* Links (unchanged) */}
                     {renderLinksOldLayouts()}
 
-                    {/* QR section (existing) */}
+                    {/* QR section (unchanged) */}
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -343,16 +480,13 @@ const PublicProfilePage = () => {
                 )}
               </div>
 
-              {/* NEW: Fixed footer with branding inside (logic unchanged: starter only) */}
+              {/* Fixed footer branding */}
               <div className="absolute bottom-0 left-0 right-0 z-20">
                 <div className="glass-strong border-t border-border/60 px-4 py-3">
                   <div className="flex items-center justify-center min-h-[20px]">
-                    {user?.plan === "starter" ? (
-                      <div className="flex items-center gap-1.5 opacity-60">
-                        <div
-                          className="w-4 h-4 rounded flex items-center justify-center"
-                          style={{ background: theme.gradient || theme.accent }}
-                        >
+                    {showBranding ? (
+                      <div className="flex items-center gap-1.5 opacity-70">
+                        <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: theme.gradient || theme.accent }}>
                           <span className="text-[8px] font-bold text-white">L</span>
                         </div>
                         <span className="text-[10px]" style={{ color: theme.subtext }}>
@@ -360,9 +494,7 @@ const PublicProfilePage = () => {
                         </span>
                       </div>
                     ) : (
-                      <span className="text-[10px] opacity-40" style={{ color: theme.subtext }}>
-                        {/* Keep empty-ish footer for paid plans (no branding), but footer still exists */}
-                      </span>
+                      <span className="text-[10px] opacity-0 select-none">Powered by Linkora</span>
                     )}
                   </div>
                 </div>
@@ -370,7 +502,7 @@ const PublicProfilePage = () => {
             </div>
           </div>
 
-          {/* Removed desktop copy link button outside phone (as requested) */}
+          {/* Removed desktop copy link button as requested */}
         </div>
 
         {/* Promo modal */}
@@ -385,7 +517,6 @@ const PublicProfilePage = () => {
                 <X className="w-4 h-4" />
               </button>
 
-              {/* Modal body (Linktree-like) */}
               <div className="bg-[#D8F500] text-black p-6">
                 <DialogHeader>
                   <DialogTitle className="font-display text-3xl leading-tight">
@@ -415,15 +546,15 @@ const PublicProfilePage = () => {
                     className="w-full rounded-xl bg-black text-white hover:bg-black/90"
                     onClick={() => navigate("/signup")}
                   >
-                    Claim your Linkora URL
+                    Claim your Linktree
                   </Button>
 
                   <div className="flex flex-col gap-2 text-sm underline underline-offset-4">
                     <button className="text-left" type="button">
-                      Explore more Linkora
+                      Explore more Linktrees
                     </button>
                     <button className="text-left" type="button">
-                      Learn more about Linora
+                      Learn more about Linktree
                     </button>
                   </div>
 
