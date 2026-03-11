@@ -25,7 +25,6 @@ const PublicProfilePage = () => {
 
   const handleShare = async () => {
     try {
-      // Native share sheet on mobile (best UX, like Linktree)
       if ((navigator as any).share) {
         await (navigator as any).share({
           title: "Linkora Profile",
@@ -35,7 +34,6 @@ const PublicProfilePage = () => {
         return;
       }
 
-      // Fallback to copy
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast.success("Link copied");
@@ -57,7 +55,9 @@ const PublicProfilePage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background noise-bg overflow-x-hidden">
         <div className="text-center">
-          <h1 className="text-4xl font-display font-bold text-foreground mb-2">404</h1>
+          <h1 className="text-4xl font-display font-bold text-foreground mb-2">
+            404
+          </h1>
           <p className="text-muted-foreground">Profile not found</p>
         </div>
       </div>
@@ -85,7 +85,6 @@ const PublicProfilePage = () => {
     if (username) publicApi.trackClick(username, linkId).catch(() => {});
   };
 
-  // Existing rendering helpers (unchanged logic)
   const getAvatarRadius = () => {
     switch (safeAppearance?.avatarStyle) {
       case "rounded":
@@ -98,118 +97,43 @@ const PublicProfilePage = () => {
   };
 
   const getLinkStyle = () => {
-    const base = "w-full py-3.5 px-5 text-sm text-center transition-all cursor-pointer";
+    const base =
+      "w-full py-3.5 px-5 text-sm text-center transition-all cursor-pointer backdrop-blur-md hover:scale-[1.03] hover:shadow-lg";
+
     const border = `1px solid ${theme.accent}33`;
-    switch (safeAppearance?.buttonStyle) {
-      case "pill":
-        return {
-          className: `${base} rounded-full hover:scale-[1.02]`,
-          style: { background: theme.buttonBg, border, color: theme.buttonText },
-        };
-      case "square":
-        return {
-          className: `${base} rounded-lg hover:scale-[1.02]`,
-          style: { background: theme.buttonBg, border, color: theme.buttonText },
-        };
-      case "outline":
-        return {
-          className: `${base} rounded-2xl hover:scale-[1.02]`,
-          style: {
-            background: "transparent",
-            border: `2px solid ${theme.accent}50`,
-            color: theme.buttonText,
-          },
-        };
-      case "ghost":
-        return {
-          className: `${base} rounded-2xl hover:opacity-80`,
-          style: { background: "transparent", color: theme.buttonText },
-        };
-      default:
-        return {
-          className: `${base} rounded-2xl hover:scale-[1.02]`,
-          style: { background: theme.buttonBg, border, color: theme.buttonText },
-        };
-    }
+
+    return {
+      className: `${base} rounded-2xl flex items-center justify-between`,
+      style: {
+        background: theme.buttonBg,
+        border,
+        color: theme.buttonText,
+      },
+    };
   };
 
   const linkProps = getLinkStyle();
 
   const renderLinksOldLayouts = () => {
-    if (safeAppearance?.layout === "modern-grid") {
-      return (
-        <div className="w-full grid grid-cols-2 gap-3 mb-8">
-          {enabledLinks.map((link: any, i: number) => (
-            <motion.a
-              key={link._id}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => handleLinkClick(link._id)}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className={linkProps.className}
-              style={linkProps.style}
-            >
-              <span className="text-xs font-medium">{link.title}</span>
-            </motion.a>
-          ))}
-        </div>
-      );
-    }
-
-    if (safeAppearance?.layout === "bubble-links") {
-      return (
-        <div className="w-full flex flex-wrap gap-3 justify-center mb-8">
-          {enabledLinks.map((link: any, i: number) => (
-            <motion.a
-              key={link._id}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => handleLinkClick(link._id)}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.08 }}
-              className="px-5 py-2.5 rounded-full text-sm font-medium hover:scale-105 transition-transform"
-              style={{
-                background: theme.buttonBg,
-                color: theme.buttonText,
-                border: `1px solid ${theme.accent}33`,
-              }}
-            >
-              {link.title}
-            </motion.a>
-          ))}
-        </div>
-      );
-    }
-
     return (
       <div className="w-full space-y-3 mb-8">
-        {enabledLinks.map((link: any, i: number) => {
-          const style = { ...linkProps.style } as any;
-          if (safeAppearance?.layout === "edge-accent") style.borderLeft = `3px solid ${theme.accent}`;
-
-          return (
-            <motion.a
-              key={link._id}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => handleLinkClick(link._id)}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className={`${linkProps.className} flex items-center justify-between`}
-              style={style}
-            >
-              <span className="font-medium">{link.title}</span>
-              <ExternalLink className="w-4 h-4 opacity-50" />
-            </motion.a>
-          );
-        })}
+        {enabledLinks.map((link: any, i: number) => (
+          <motion.a
+            key={link._id}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => handleLinkClick(link._id)}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08 }}
+            className={linkProps.className}
+            style={linkProps.style}
+          >
+            <span className="font-medium">{link.title}</span>
+            <ExternalLink className="w-4 h-4 opacity-60" />
+          </motion.a>
+        ))}
       </div>
     );
   };
@@ -217,121 +141,129 @@ const PublicProfilePage = () => {
   return (
     <div className="min-h-screen bg-background noise-bg overflow-x-hidden">
       <div className="min-h-screen flex items-center justify-center px-4 py-10 relative">
-        {/* Premium background glow */}
-        <div className="pointer-events-none absolute top-1/3 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[140px]" />
-        <div className="pointer-events-none absolute bottom-1/3 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[140px]" />
+        {/* Background Glow */}
+        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[140px]" />
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[140px]" />
 
-        {/* Centered wrapper (phone width) */}
         <div className="relative z-10 w-full max-w-[420px] mx-auto">
-          {/* Premium outer frame */}
-          <div className="rounded-[3.2rem] p-[3px] bg-gradient-to-b from-white/15 to-white/0 shadow-[0_30px_120px_rgba(0,0,0,0.55)]">
-            {/* Phone Frame (AUTO HEIGHT now) */}
+          {/* Phone Frame */}
+          <div className="rounded-[3rem] p-[3px] bg-gradient-to-b from-white/15 to-white/0 shadow-[0_30px_120px_rgba(0,0,0,0.55)]">
             <div
-              className="relative w-full rounded-[3rem] overflow-hidden border border-border/60"
+              className="relative w-full rounded-[2.8rem] overflow-hidden border border-border/60"
               style={{ background: theme.bg }}
             >
-              {/* Gradient overlay */}
-              {theme.gradient && <div className="absolute inset-0 opacity-10" style={{ background: theme.gradient }} />}
+              {/* HERO BANNER */}
+              <div
+                className="w-full h-36"
+                style={{
+                  background: theme.gradient || theme.accent,
+                }}
+              />
 
-              {/* Pastel header overlay (same logic) */}
-              {safeAppearance?.layout === "pastel-header" && (
-                <div
-                  className="absolute top-0 left-0 right-0 h-36 opacity-25"
-                  style={{ background: theme.gradient || theme.accent }}
-                />
-              )}
-
-              {/* Share button (UNCHANGED logic) */}
+              {/* Share button */}
               <div className="absolute top-4 right-4 z-20">
                 <button
                   onClick={handleShare}
-                  className="w-10 h-10 rounded-full glass flex items-center justify-center text-foreground hover:bg-secondary/40 transition"
-                  aria-label="Share profile"
-                  title="Share"
+                  className="w-10 h-10 rounded-full glass flex items-center justify-center text-foreground"
                 >
-                  {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                  {copied ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Share2 className="w-4 h-4" />
+                  )}
                 </button>
               </div>
 
-              {/* Content inside phone (NO internal scroll; auto fits height) */}
-              <div className="relative z-10 p-5 pt-12 flex flex-col items-center" style={{ fontFamily: safeAppearance.font }}>
-                {isNewLayout(safeAppearance.layout) ? (
-                  <div className="w-full">
-                    <RenderNewLayout
-                      mode="preview"
-                      user={user}
-                      appearance={safeAppearance}
-                      theme={theme}
-                      links={enabledLinks}
-                      onLinkClick={handleLinkClick}
+              {/* Content */}
+              <div className="relative flex flex-col items-center px-6 pb-6">
+                {/* Avatar */}
+                <motion.div
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", bounce: 0.4 }}
+                  className={`w-24 h-24 ${getAvatarRadius()} -mt-12 flex items-center justify-center text-3xl font-bold border-4 border-background`}
+                  style={{
+                    background: theme.gradient || theme.accent,
+                    color: "#fff",
+                    boxShadow: `0 0 40px ${theme.accent}40`,
+                  }}
+                >
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
                     />
+                  ) : (
+                    user?.name?.charAt(0) || "?"
+                  )}
+                </motion.div>
+
+                {/* Username */}
+                <h1
+                  className="text-xl font-bold mt-4"
+                  style={{ color: theme.text }}
+                >
+                  @{user?.username}
+                </h1>
+
+                {/* Bio */}
+                <p
+                  className="text-sm text-center mt-2 mb-6 max-w-xs"
+                  style={{ color: theme.subtext }}
+                >
+                  {user?.bio}
+                </p>
+
+                {renderLinksOldLayouts()}
+
+                {/* QR Section */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center gap-3 mt-4"
+                >
+                  <div className="w-24 h-24 rounded-2xl bg-white flex items-center justify-center shadow-lg">
+                    <QrCode className="w-12 h-12 text-gray-900" />
                   </div>
-                ) : (
-                  <>
-                    {/* Old layout hero */}
-                    <motion.div
-                      initial={{ scale: 0.9 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", bounce: 0.4 }}
-                      className={`${safeAppearance?.layout === "focus-avatar" ? "w-28 h-28 text-4xl" : "w-24 h-24 text-3xl"} ${getAvatarRadius()} flex items-center justify-center font-bold mb-4 mt-2`}
-                      style={{
-                        background: theme.gradient || theme.accent,
-                        color: "#fff",
-                        boxShadow: `0 0 40px ${theme.accent}40`,
-                      }}
-                    >
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        user?.name?.charAt(0) || "?"
-                      )}
-                    </motion.div>
+                  <p className="text-xs" style={{ color: theme.subtext }}>
+                    Scan to open this page
+                  </p>
+                </motion.div>
 
-                    <h1 className="text-xl font-bold" style={{ color: theme.text }}>
-                      @{user?.username}
-                    </h1>
-                    <p className="text-sm text-center mt-2 mb-8 max-w-xs" style={{ color: theme.subtext }}>
-                      {user?.bio}
-                    </p>
-
-                    {renderLinksOldLayouts()}
-
-                    {/* QR Footer */}
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 }}
-                      className="flex flex-col items-center gap-3 mt-4"
-                    >
-                      <div className="w-24 h-24 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                        <QrCode className="w-12 h-12 text-gray-900" />
-                      </div>
-                      <p className="text-xs font-medium" style={{ color: theme.subtext }}>
-                        Scan to open your page
-                      </p>
-                    </motion.div>
-
-                    {/* Branding (UNCHANGED logic) */}
-                    {user?.plan === "starter" && (
-                      <div className="mt-8 flex items-center gap-1.5 opacity-40 pb-4">
-                        <div
-                          className="w-4 h-4 rounded flex items-center justify-center"
-                          style={{ background: theme.gradient || theme.accent }}
-                        >
-                          <span className="text-[8px] font-bold text-white">L</span>
-                        </div>
-                        <span className="text-[10px]" style={{ color: theme.subtext }}>
-                          Powered by Linkora
+                {/* Branding */}
+                {user?.plan === "starter" && (
+                  <div className="mt-8 flex flex-col items-center opacity-70">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-5 h-5 rounded-md flex items-center justify-center"
+                        style={{
+                          background: theme.gradient || theme.accent,
+                        }}
+                      >
+                        <span className="text-[10px] font-bold text-white">
+                          L
                         </span>
                       </div>
-                    )}
-                  </>
+
+                      <span
+                        className="text-xs font-semibold"
+                        style={{ color: theme.subtext }}
+                      >
+                        Powered by Linkora
+                      </span>
+                    </div>
+
+                    <span className="text-[10px] opacity-60">
+                      Create your own page at linkora.app
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Desktop copy link button (unchanged logic; centered) */}
+          {/* Desktop copy button */}
           <div className="mt-4 flex justify-center">
             <button
               onClick={async () => {
