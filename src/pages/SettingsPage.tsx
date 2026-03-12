@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Copy, ExternalLink, Link as LinkIcon, Share2, Upload } from "lucide-react";
 import axios from "axios";
+
+import AvatarCropperDialog from "../components/AvatarCropperDialog";
 
 const SettingsPage = () => {
   const { user, refreshUser, logout } = useAuth();
@@ -29,6 +31,17 @@ const SettingsPage = () => {
   // Avatar states
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>(user?.avatar || "");
+
+  // Crop states
+  const [cropOpen, setCropOpen] = useState(false);
+  const [rawAvatarSrc, setRawAvatarSrc] = useState<string>("");
+
+  // cleanup blob urls to avoid memory leak
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith("blob:")) URL.revokeObjectURL(avatarPreview);
+    };
+  }, [avatarPreview]);
 
   const publicBaseUrl = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
   const previewUsername = (form.username || user?.username || "").trim();
@@ -118,9 +131,12 @@ const SettingsPage = () => {
     if (!file.type.startsWith("image/")) return toast.error("Please select an image");
     if (file.size > 3 * 1024 * 1024) return toast.error("Max image size is 3MB");
 
-    // show local preview immediately
+    // show local preview immediately (cropped file)
     const localUrl = URL.createObjectURL(file);
-    setAvatarPreview(localUrl);
+    setAvatarPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return localUrl;
+    });
 
     setUploadingAvatar(true);
     try {
@@ -152,7 +168,6 @@ const SettingsPage = () => {
       toast.success("Avatar updated");
     } catch (err: any) {
       toast.error(err?.response?.data?.error || err?.message || "Avatar upload failed");
-      // fallback to existing avatar if upload failed
       setAvatarPreview(user?.avatar || "");
     } finally {
       setUploadingAvatar(false);
@@ -186,17 +201,45 @@ const SettingsPage = () => {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => handleAvatarFile(e.target.files?.[0])}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+
+                  if (!file.type.startsWith("image/")) {
+                    toast.error("Please select an image");
+                    e.currentTarget.value = "";
+                    return;
+                  }
+                  if (file.size > 3 * 1024 * 1024) {
+                    toast.error("Max image size is 3MB");
+                    e.currentTarget.value = "";
+                    return;
+                  }
+
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    setRawAvatarSrc(String(reader.result));
+                    setCropOpen(true);
+                  };
+                  reader.readAsDataURL(file);
+
+                  // allow picking same file again
+                  e.currentTarget.value = "";
+                }}
               />
 
-              <Button variant="outline" size="sm" onClick={handlePickAvatar} disabled={uploadingAvatar} className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePickAvatar}
+                disabled={uploadingAvatar}
+                className="gap-2"
+              >
                 <Upload className="w-4 h-4" />
                 {uploadingAvatar ? "Uploading..." : "Change Avatar"}
               </Button>
 
-              <p className="text-[11px] text-muted-foreground">
-                PNG/JPG • max 3MB
-              </p>
+              <p className="text-[11px] text-muted-foreground">PNG/JPG • max 3MB</p>
             </div>
           </div>
 
@@ -298,14 +341,22 @@ const SettingsPage = () => {
         {/* Danger Zone */}
         <div className="glass rounded-2xl p-6 border-destructive/20">
           <h3 className="text-sm font-medium text-destructive mb-2">Danger Zone</h3>
-          <p className="text-xs text-muted-foreground mb-4">
-            Once you delete your account, there is no going back.
-          </p>
+          <p className="text-xs text-muted-foreground mb-4">Once you delete your account, there is no going back.</p>
           <Button variant="destructive" size="sm" onClick={handleDeleteAccount}>
             Delete Account
           </Button>
         </div>
       </motion.div>
+
+      {/* Crop dialog */}
+      <AvatarCropperDialog
+        open={cropOpen}
+        imageSrc={rawAvatarSrc}
+        onClose={() => setCropOpen(false)}
+        onCropped={async (croppedFile) => {
+          await handleAvatarFile(croppedFile);
+        }}
+      />
     </DashboardLayout>
   );
 };
