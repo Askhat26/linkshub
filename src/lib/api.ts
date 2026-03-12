@@ -71,7 +71,8 @@ export const cardApi = {
 export const analyticsApi = {
   getStats: () => api.get("/analytics/stats"),
   getChartData: (days?: number) => api.get("/analytics/chart", { params: { days } }),
-  trackEvent: (data: { type: string; linkId?: string }) => api.post("/analytics/track", data),
+  trackEvent: (data: { type: string; linkId?: string }) =>
+    api.post("/analytics/track", data),
 };
 
 // ─── QR CODE ────────────────────────────────────
@@ -114,13 +115,29 @@ export const adminApi = {
 export const publicApi = {
   getProfile: (username: string) => api.get(`/public/${username}`),
   trackView: (username: string) => api.post(`/public/${username}/view`),
-  trackClick: (username: string, linkId: string) => api.post(`/public/${username}/click`, { linkId }),
+  trackClick: (username: string, linkId: string) =>
+    api.post(`/public/${username}/click`, { linkId }),
 };
 
 // ─── UPLOADS (Cloudinary) ───────────────────────
 export const uploadsApi = {
   getCloudinarySignature: (folder?: string) =>
     api.get("/uploads/cloudinary-signature", { params: folder ? { folder } : undefined }),
+};
+
+/**
+ * ─── PAYMENTS (stub for build) ───────────────────
+ * This is added ONLY to fix Vercel/TypeScript build.
+ * Backend endpoints can be implemented later.
+ *
+ * UpgradePage currently expects: paymentsApi.createOrder(planId, couponCode?)
+ */
+export const paymentsApi = {
+  createOrder: (planId: string, couponCode?: string) =>
+    api.post("/payments/create-order", { planId, couponCode }),
+
+  verifyPayment: (data: { orderId: string; paymentId: string; signature: string }) =>
+    api.post("/payments/verify", data),
 };
 
 export default api;
