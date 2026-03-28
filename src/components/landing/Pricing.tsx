@@ -5,30 +5,46 @@ import { Button } from "@/components/ui/button";
 
 const plans = [
   {
-    name: "Starter",
-    price: "Free",
-    period: "",
-    description: "Perfect for getting started",
-    features: ["5 links", "Basic themes", "Linkora branding", "Basic analytics"],
-    cta: "Get Started",
+    name: "Free",
+    price: "₹0",
+    period: "/month",
+    description: "Best for getting started with your bio page.",
+    features: [
+      "Unlimited Links",
+      "Social Icons, Videos & Embeds",
+      "Essential Analytics",
+      "SEO Optimized Design",
+      "Unique QR Code",
+    ],
+    cta: "Start Free",
     highlighted: false,
   },
   {
-    name: "Pro",
-    price: "₹499",
+    name: "Starter",
+    price: "₹49",
     period: "/month",
-    description: "For serious creators",
-    features: ["Unlimited links", "All 20 themes & 15 layouts", "Custom domain", "Advanced analytics", "Digital business card", "No branding", "Priority support"],
-    cta: "Start Pro Trial",
+    description: "Great for creators who want more customization and growth tools.",
+    features: [
+      "Everything in Free Plan",
+      "Custom Themes",
+      "Own Your Audience",
+      "Redirect Links",
+    ],
+    cta: "Get Starter",
     highlighted: true,
   },
   {
     name: "Premium",
-    price: "₹999",
+    price: "₹79",
     period: "/month",
-    description: "For teams & agencies",
-    features: ["Everything in Pro", "Team collaboration", "API access", "White-label", "Dedicated support", "Custom integrations"],
-    cta: "Contact Sales",
+    description: "Perfect for professionals who want branding, priority links, and advanced insights.",
+    features: [
+      "Everything in Starter Plan",
+      "Personalized Link Page",
+      "Highlight Key Links",
+      "Comprehensive Analytics",
+    ],
+    cta: "Get Premium",
     highlighted: false,
   },
 ];
@@ -44,10 +60,11 @@ export function Pricing() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Simple, transparent{" "}
-            <span className="gradient-text">pricing</span>
+            Simple, transparent <span className="gradient-text">pricing</span>
           </h2>
-          <p className="text-lg text-muted-foreground">Start free. Upgrade when you're ready.</p>
+          <p className="text-lg text-muted-foreground">
+            Start free and upgrade as you grow.
+          </p>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -69,23 +86,39 @@ export function Pricing() {
                   Most Popular
                 </div>
               )}
-              <h3 className="font-display font-bold text-lg text-foreground">{plan.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+
+              <h3 className="font-display font-bold text-lg text-foreground">
+                {plan.name}
+              </h3>
+
+              <p className="text-sm text-muted-foreground mt-1">
+                {plan.description}
+              </p>
+
               <div className="mt-4 mb-6">
-                <span className="text-4xl font-display font-bold text-foreground">{plan.price}</span>
+                <span className="text-4xl font-display font-bold text-foreground">
+                  {plan.price}
+                </span>
                 <span className="text-muted-foreground text-sm">{plan.period}</span>
               </div>
-              <ul className="flex flex-col gap-2.5 mb-8 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                    {f}
+
+              <ul className="flex flex-col gap-3 mb-8 flex-1">
+                {plan.features.map((feature) => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-2.5 text-sm text-muted-foreground"
+                  >
+                    <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>
+
               <Button
                 variant={plan.highlighted ? "default" : "outline"}
-                className={`w-full rounded-xl h-11 ${plan.highlighted ? "glow-primary" : ""}`}
+                className={`w-full rounded-xl h-11 ${
+                  plan.highlighted ? "glow-primary" : ""
+                }`}
                 asChild
               >
                 <Link to="/signup">{plan.cta}</Link>
