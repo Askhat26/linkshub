@@ -101,7 +101,6 @@ export const layoutTemplates: LayoutTemplate[] = [
   { id: "dark-creator", label: "Dark Creator", description: "Bold dark mode for creators" },
   { id: "sunset-gradient", label: "Sunset Gradient", description: "Warm sunset color gradients" },
 
-  // --- NEW (10) ---
   { id: "creator-hero", label: "Creator Hero", description: "Hero banner + social icons + featured link" },
   { id: "featured-spotlight", label: "Featured Spotlight", description: "Large glowing featured link on top" },
   { id: "social-grid", label: "Social Grid", description: "Two-column grid cards for links" },
@@ -234,8 +233,6 @@ export interface CardTemplate {
   textColor: string;
   subColor: string;
   accentColor: string;
-  pattern?: string;
-  bgStyle?: CSSProperties;
   frontBgStyle?: CSSProperties;
   backBgStyle?: CSSProperties;
 }
@@ -248,7 +245,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-slate-900",
     subColor: "text-slate-600",
     accentColor: "#0f172a",
-    pattern: "hex-minimal",
     frontBgStyle: {
       backgroundColor: "#ffffff",
       backgroundImage: `
@@ -266,7 +262,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(255,255,255,0.10)",
     },
   },
-
   {
     id: "premium-black",
     label: "Ornate Navy Gold",
@@ -274,7 +269,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-[#f5d37a]",
     subColor: "text-[#d6c28c]",
     accentColor: "#d4a853",
-    pattern: "ornate",
     frontBgStyle: {
       backgroundColor: "#05070d",
       backgroundImage: `
@@ -292,7 +286,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(212,168,83,0.30)",
     },
   },
-
   {
     id: "luxury-dark-gold",
     label: "Mandala Luxe",
@@ -300,7 +293,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-[#f0d28a]",
     subColor: "text-[#cbb57a]",
     accentColor: "#d4a853",
-    pattern: "mandala",
     frontBgStyle: {
       backgroundColor: "#06070c",
       backgroundImage: `
@@ -319,7 +311,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(212,168,83,0.28)",
     },
   },
-
   {
     id: "geometric-dark",
     label: "Triangle Matrix Blue",
@@ -327,7 +318,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-white",
     subColor: "text-slate-300",
     accentColor: "#22d3ee",
-    pattern: "triangles",
     frontBgStyle: {
       backgroundColor: "#030712",
       backgroundImage: `
@@ -346,7 +336,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(34,211,238,0.18)",
     },
   },
-
   {
     id: "split-modern",
     label: "Origami Split",
@@ -354,7 +343,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-slate-900",
     subColor: "text-slate-600",
     accentColor: "#f97316",
-    pattern: "origami",
     frontBgStyle: {
       backgroundColor: "#ffffff",
       backgroundImage: `
@@ -373,7 +361,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(255,255,255,0.10)",
     },
   },
-
   {
     id: "gradient-glass",
     label: "Forest Prism",
@@ -381,7 +368,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-white",
     subColor: "text-emerald-100",
     accentColor: "#22c55e",
-    pattern: "prism",
     frontBgStyle: {
       backgroundColor: "#02100e",
       backgroundImage: `
@@ -400,7 +386,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(34,197,94,0.18)",
     },
   },
-
   {
     id: "corporate-blue",
     label: "Code Pro Yellow",
@@ -408,7 +393,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-zinc-900",
     subColor: "text-zinc-700",
     accentColor: "#facc15",
-    pattern: "circle-split",
     frontBgStyle: {
       backgroundColor: "#facc15",
       backgroundImage: `
@@ -425,7 +409,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(250,204,21,0.18)",
     },
   },
-
   {
     id: "neon-creator",
     label: "Gold Ribbon",
@@ -433,7 +416,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-zinc-900",
     subColor: "text-zinc-600",
     accentColor: "#d4a853",
-    pattern: "ribbon",
     frontBgStyle: {
       backgroundColor: "#ffffff",
       backgroundImage: `
@@ -451,7 +433,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(212,168,83,0.22)",
     },
   },
-
   {
     id: "startup-founder",
     label: "Sand Wave",
@@ -459,7 +440,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-[#f5e9d0]",
     subColor: "text-[#d9c8a2]",
     accentColor: "#c9a46b",
-    pattern: "wave",
     frontBgStyle: {
       backgroundColor: "#031018",
       backgroundImage: `
@@ -478,7 +458,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(201,164,107,0.18)",
     },
   },
-
   {
     id: "creative-designer",
     label: "Mosaic Grid",
@@ -486,7 +465,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-slate-900",
     subColor: "text-slate-600",
     accentColor: "#22c55e",
-    pattern: "mosaic",
     frontBgStyle: {
       backgroundColor: "#ffffff",
       backgroundImage: `
@@ -506,7 +484,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(255,255,255,0.10)",
     },
   },
-
   {
     id: "soft-pastel",
     label: "Blush Half-Round",
@@ -514,7 +491,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-[#b04b63]",
     subColor: "text-[#c06a80]",
     accentColor: "#e65a7a",
-    pattern: "blush-tiles",
     frontBgStyle: {
       backgroundColor: "#ffffff",
       backgroundImage: `
@@ -532,7 +508,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(176,75,99,0.14)",
     },
   },
-
   {
     id: "elegant-gold",
     label: "Gold & Navy Curve",
@@ -540,7 +515,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-[#0b2b3a]",
     subColor: "text-[#1f3e4d]",
     accentColor: "#d4a853",
-    pattern: "navy-curve",
     frontBgStyle: {
       backgroundColor: "#e3b768",
       backgroundImage: `
@@ -559,7 +533,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(212,168,83,0.22)",
     },
   },
-
   {
     id: "ruby-gradient",
     label: "Tri-Arrow Dark",
@@ -567,7 +540,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-white",
     subColor: "text-slate-200",
     accentColor: "#ef4444",
-    pattern: "tri-arrow",
     frontBgStyle: {
       backgroundColor: "#111827",
       backgroundImage: `
@@ -586,7 +558,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(255,255,255,0.10)",
     },
   },
-
   {
     id: "tech-dark",
     label: "Black Gold Dots",
@@ -594,7 +565,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-[#d4a853]",
     subColor: "text-[#c9b17a]",
     accentColor: "#d4a853",
-    pattern: "gold-dots",
     frontBgStyle: {
       backgroundColor: "#050505",
       backgroundImage: `
@@ -617,7 +587,6 @@ export const cardTemplates: CardTemplate[] = [
       border: "1px solid rgba(212,168,83,0.20)",
     },
   },
-
   {
     id: "midnight-aurora",
     label: "Art Deco Plum",
@@ -625,7 +594,6 @@ export const cardTemplates: CardTemplate[] = [
     textColor: "text-[#f5d37a]",
     subColor: "text-[#e7d3a2]",
     accentColor: "#f5d37a",
-    pattern: "art-deco",
     frontBgStyle: {
       backgroundColor: "#120a22",
       backgroundImage: `

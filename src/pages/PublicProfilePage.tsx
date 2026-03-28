@@ -50,7 +50,7 @@ const PublicProfilePage = () => {
 
   const handleShare = async () => {
     try {
-      // Native share sheet on mobile (best UX, like Linktree)
+      // Native share sheet on mobile (best UX, like )
       if ((navigator as any).share) {
         await (navigator as any).share({
           title: "Linkora Profile",
@@ -546,15 +546,15 @@ const PublicProfilePage = () => {
                     className="w-full rounded-xl bg-black text-white hover:bg-black/90"
                     onClick={() => navigate("/signup")}
                   >
-                    Claim your Linktree
+                    Claim your Link
                   </Button>
 
                   <div className="flex flex-col gap-2 text-sm underline underline-offset-4">
                     <button className="text-left" type="button">
-                      Explore more Linktrees
+                      Explore more features of Linkora
                     </button>
                     <button className="text-left" type="button">
-                      Learn more about Linktree
+                      Learn more about Linkora
                     </button>
                   </div>
 
