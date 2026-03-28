@@ -47,6 +47,8 @@ export interface Card {
   template: string;
   brandName: string;
   tagline: string;
+  logoUrl: string;
+  servicesText: string;
 }
 
 export interface AnalyticsEvent {
@@ -197,6 +199,8 @@ export const mockCard: Card = {
   template: "luxury-dark-gold",
   brandName: "Linkora",
   tagline: "Design Studio",
+  logoUrl: "",
+  servicesText: "Web • App • SEO • Digital Marketing",
 };
 
 // --- MOCK ANALYTICS ---

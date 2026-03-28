@@ -33,14 +33,12 @@ export const authApi = {
     api.post("/auth/login", data),
   me: () => api.get("/auth/me"),
 
-  // ✅ FIXED: these are in /api/user/*
   updateProfile: (data: { name?: string; username?: string; bio?: string }) =>
     api.put("/user/profile", data),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.put("/user/password", data),
   deleteAccount: () => api.delete("/user/account"),
 
-  // ✅ NEW: update avatar
   updateAvatar: (avatar: string) => api.put("/user/avatar", { avatar }),
 };
 
@@ -65,6 +63,21 @@ export const cardApi = {
   get: () => api.get("/card"),
   update: (data: any) => api.put("/card", data),
   downloadPdf: () => api.get("/card/pdf", { responseType: "blob" }),
+
+  // NEW: upload business card logo
+  uploadLogo: (file: File) => {
+    const formData = new FormData();
+    formData.append("logo", file);
+
+    return api.post("/card/logo", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  // NEW: remove business card logo
+  removeLogo: () => api.delete("/card/logo"),
 };
 
 // ─── ANALYTICS ──────────────────────────────────
@@ -125,13 +138,7 @@ export const uploadsApi = {
     api.get("/uploads/cloudinary-signature", { params: folder ? { folder } : undefined }),
 };
 
-/**
- * ─── PAYMENTS (stub for build) ───────────────────
- * This is added ONLY to fix Vercel/TypeScript build.
- * Backend endpoints can be implemented later.
- *
- * UpgradePage currently expects: paymentsApi.createOrder(planId, couponCode?)
- */
+// ─── PAYMENTS ───────────────────────────────────
 export const paymentsApi = {
   createOrder: (planId: string, couponCode?: string) =>
     api.post("/payments/create-order", { planId, couponCode }),

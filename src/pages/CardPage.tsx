@@ -1,10 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useCard, useUpdateCard } from "@/hooks/useApi";
+import {
+  useCard,
+  useUpdateCard,
+  useUploadCardLogo,
+  useRemoveCardLogo,
+} from "@/hooks/useApi";
 import { cardTemplates, type Card } from "@/lib/mock-data";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Download,
   Mail,
@@ -12,12 +18,15 @@ import {
   MapPin,
   Globe,
   Check,
+  Upload,
+  Trash2,
   Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { QRCodeCanvas } from "qrcode.react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
+import { toast } from "sonner";
 
 const CARD_W = 350;
 const CARD_H = 200;
@@ -26,6 +35,8 @@ const CardPage = () => {
   const { user } = useAuth();
   const { data: fetchedCard, isLoading } = useCard();
   const updateCard = useUpdateCard();
+  const uploadLogo = useUploadCardLogo();
+  const removeLogo = useRemoveCardLogo();
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -41,12 +52,15 @@ const CardPage = () => {
     template: "luxury-dark-gold",
     brandName: "",
     tagline: "",
+    logoUrl: "",
+    servicesText: "",
   });
 
   const pendingRef = useRef<Partial<Card>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const profileUrl = `${window.location.origin}/${user?.username || ""}`;
 
@@ -55,7 +69,13 @@ const CardPage = () => {
   }, []);
 
   useEffect(() => {
-    if (fetchedCard) setCard(fetchedCard);
+    if (fetchedCard) {
+      setCard({
+        ...fetchedCard,
+        logoUrl: fetchedCard.logoUrl || "",
+        servicesText: fetchedCard.servicesText || "",
+      });
+    }
   }, [fetchedCard]);
 
   const currentTemplate =
@@ -70,7 +90,7 @@ const CardPage = () => {
       const changes = { ...pendingRef.current };
       pendingRef.current = {};
       if (Object.keys(changes).length > 0) {
-        updateCard.mutate(changes as any);
+        updateCard.mutate(changes as Record<string, string>);
       }
     }, 500);
   };
@@ -81,7 +101,7 @@ const CardPage = () => {
 
     const changes = { ...pendingRef.current, template: templateId };
     pendingRef.current = {};
-    updateCard.mutate(changes as any);
+    updateCard.mutate(changes as Record<string, string>);
   };
 
   const flushPendingChanges = () => {
@@ -92,7 +112,7 @@ const CardPage = () => {
     if (Object.keys(changes).length === 0) return Promise.resolve();
 
     return new Promise<void>((resolve, reject) => {
-      updateCard.mutate(changes as any, {
+      updateCard.mutate(changes as Record<string, string>, {
         onSuccess: () => resolve(),
         onError: () => reject(),
       });
@@ -113,9 +133,6 @@ const CardPage = () => {
       backgroundColor: null,
       width: node.offsetWidth,
       height: node.offsetHeight,
-      style: {
-        margin: "0",
-      },
     });
   };
 
@@ -125,7 +142,10 @@ const CardPage = () => {
       await flushPendingChanges();
       await waitForFonts();
 
-      if (!frontRef.current || !backRef.current) return;
+      if (!frontRef.current || !backRef.current) {
+        toast.error("Card preview not ready");
+        return;
+      }
 
       const frontDataUrl = await exportNodeToPng(frontRef.current);
       const backDataUrl = await exportNodeToPng(backRef.current);
@@ -148,8 +168,40 @@ const CardPage = () => {
         .replace(/(^-|-$)/g, "");
 
       pdf.save(`${safeName}-card.pdf`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate PDF");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await uploadLogo.mutateAsync(file);
+      setCard((prev) => ({
+        ...prev,
+        logoUrl: result.data.logoUrl,
+      }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    try {
+      await removeLogo.mutateAsync();
+      setCard((prev) => ({
+        ...prev,
+        logoUrl: "",
+      }));
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -169,8 +221,9 @@ const CardPage = () => {
     };
   })();
 
-  const brandDisplay = card.brandName || card.name || "Your Brand";
-  const subDisplay = card.brandName ? card.tagline : card.role;
+  const brandDisplay = card.brandName || card.name || "YOUR BRAND";
+  const servicesDisplay =
+    card.servicesText || "Add your services, specialties, or brand message";
   const hasContact = !!(card.phone || card.website || card.email || card.location);
 
   if (isLoading) {
@@ -190,6 +243,7 @@ const CardPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
+        {/* LEFT */}
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-display font-bold text-foreground">
@@ -219,16 +273,10 @@ const CardPage = () => {
                   <div
                     className="w-8 h-5 rounded overflow-hidden relative"
                     style={t.frontBgStyle || {}}
-                  >
-                    {!t.frontBgStyle && (
-                      <div className={`w-full h-full bg-gradient-to-r ${t.gradient}`} />
-                    )}
-                  </div>
-
+                  />
                   <span className="text-xs font-medium text-foreground truncate">
                     {t.label}
                   </span>
-
                   {card.template === t.id && (
                     <Check className="w-3 h-3 text-primary ml-auto shrink-0" />
                   )}
@@ -238,24 +286,93 @@ const CardPage = () => {
           </div>
 
           <div className="glass rounded-2xl p-5 space-y-4">
-            <h3 className="text-sm font-medium text-foreground">Brand Info</h3>
+            <h3 className="text-sm font-medium text-foreground">Branding</h3>
 
-            {[
-              { key: "brandName" as const, label: "Brand / Company", placeholder: "Your brand name" },
-              { key: "tagline" as const, label: "Tagline", placeholder: "Turning Ideas into Reality" },
-            ].map((f) => (
-              <div key={f.key}>
-                <label className="text-xs text-muted-foreground mb-1 block">
-                  {f.label}
-                </label>
-                <Input
-                  value={card[f.key] || ""}
-                  onChange={(e) => handleChange(f.key, e.target.value)}
-                  placeholder={f.placeholder}
-                  className="bg-secondary/50"
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Logo
+              </label>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoSelect}
                 />
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadLogo.isPending}
+                  className="gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploadLogo.isPending ? "Uploading..." : "Upload Logo"}
+                </Button>
+
+                {card.logoUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRemoveLogo}
+                    disabled={removeLogo.isPending}
+                    className="gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Remove
+                  </Button>
+                )}
               </div>
-            ))}
+
+              {card.logoUrl && (
+                <div className="mt-3 w-20 h-20 rounded-xl bg-white/5 border border-border flex items-center justify-center overflow-hidden">
+                  <img
+                    src={card.logoUrl}
+                    alt="Logo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Brand / Company
+              </label>
+              <Input
+                value={card.brandName || ""}
+                onChange={(e) => handleChange("brandName", e.target.value)}
+                placeholder="Your Brand Name"
+                className="bg-secondary/50"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Tagline
+              </label>
+              <Input
+                value={card.tagline || ""}
+                onChange={(e) => handleChange("tagline", e.target.value)}
+                placeholder="Your brand tagline"
+                className="bg-secondary/50"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Services Line
+              </label>
+              <Textarea
+                value={card.servicesText || ""}
+                onChange={(e) => handleChange("servicesText", e.target.value)}
+                placeholder="Add your services, specialties, or short brand message"
+                className="bg-secondary/50 min-h-[90px]"
+              />
+            </div>
           </div>
 
           <div className="glass rounded-2xl p-5 space-y-4">
@@ -263,7 +380,7 @@ const CardPage = () => {
 
             {[
               { key: "name" as const, label: "Name", placeholder: "Your name" },
-              { key: "role" as const, label: "Role", placeholder: "Founder / CEO" },
+              { key: "role" as const, label: "Role", placeholder: "Your role or designation" },
               { key: "phone" as const, label: "Phone", placeholder: "+91 98765 43210" },
               { key: "email" as const, label: "Email", placeholder: "you@example.com" },
               { key: "website" as const, label: "Website", placeholder: "www.yoursite.com" },
@@ -289,10 +406,15 @@ const CardPage = () => {
             disabled={isExporting || updateCard.isPending}
           >
             <Download className="w-4 h-4" />
-            {isExporting ? "Generating..." : updateCard.isPending ? "Saving..." : "Download PDF"}
+            {isExporting
+              ? "Generating..."
+              : updateCard.isPending
+              ? "Saving..."
+              : "Download PDF"}
           </Button>
         </div>
 
+        {/* RIGHT */}
         <div className="sticky top-20 space-y-3">
           <p className="text-sm text-muted-foreground">Card Preview</p>
 
@@ -313,46 +435,51 @@ const CardPage = () => {
               ...currentTemplate.frontBgStyle,
             }}
           >
-            {!currentTemplate.frontBgStyle && (
-              <div className={`absolute inset-0 bg-gradient-to-br ${currentTemplate.gradient}`} />
-            )}
-
-            <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 backdrop-blur-sm"
-                style={{
-                  background: `${currentTemplate.accentColor}18`,
-                  border: `2px solid ${currentTemplate.accentColor}40`,
-                  boxShadow: `0 0 24px ${currentTemplate.accentColor}15`,
-                }}
-              >
-                <Briefcase
-                  className="w-7 h-7"
-                  style={{ color: currentTemplate.accentColor }}
-                />
-              </div>
+            <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
+              {card.logoUrl ? (
+                <div className="w-20 h-20 mb-4 flex items-center justify-center">
+                  <img
+                    src={card.logoUrl}
+                    alt="Brand logo"
+                    className="max-w-full max-h-full object-contain"
+                    crossOrigin="anonymous"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                  style={{
+                    background: `${currentTemplate.accentColor}18`,
+                    border: `2px solid ${currentTemplate.accentColor}40`,
+                  }}
+                >
+                  <Briefcase
+                    className="w-8 h-8"
+                    style={{ color: currentTemplate.accentColor }}
+                  />
+                </div>
+              )}
 
               <h2
-                className="text-xl font-display font-bold tracking-wider"
+                className="text-[2rem] leading-none font-display font-extrabold tracking-wide"
                 style={{ color: currentTemplate.accentColor }}
               >
                 {brandDisplay.toUpperCase()}
               </h2>
 
-              {subDisplay && (
-                <p className={`text-sm italic mt-1.5 font-semibold ${currentTemplate.textColor}`}>
-                  {subDisplay}
+              {card.tagline && (
+                <p
+                  className={`text-lg italic font-semibold mt-3 ${currentTemplate.textColor}`}
+                >
+                  {card.tagline}
                 </p>
               )}
 
-              <div
-                className="w-16 h-[1px] mt-3"
-                style={{ background: `${currentTemplate.accentColor}40` }}
-              />
-
-              {card.brandName && (card.name || card.role) && (
-                <p className={`text-[10px] mt-2.5 ${currentTemplate.subColor} opacity-70`}>
-                  {[card.name, card.role].filter(Boolean).join(" · ")}
+              {servicesDisplay && (
+                <p
+                  className={`text-[12px] mt-4 max-w-[85%] leading-snug ${currentTemplate.subColor}`}
+                >
+                  {servicesDisplay}
                 </p>
               )}
             </div>
@@ -375,10 +502,6 @@ const CardPage = () => {
               ...currentTemplate.backBgStyle,
             }}
           >
-            {!currentTemplate.backBgStyle && (
-              <div className={`absolute inset-0 bg-gradient-to-br ${currentTemplate.gradient} opacity-30`} />
-            )}
-
             <div
               className={`relative z-10 h-full flex items-center p-5 ${
                 hasContact ? "gap-4" : "justify-center"
